@@ -1,9 +1,9 @@
-# bzm — Bonanza Mine command library
+# bzm — Bonanza Mine protocol library
 
-Portable C11 helpers for encoding/decoding Bonanza Mine (bzm) ASIC commands over
-a 9‑bit UART transport. The library is platform‑agnostic and re‑usable on host
-Linux/macOS and embedded platforms (e.g., ESP32, STM32) via a small transport
-abstraction you implement.
+Portable C17 protocol library for the Bonanza Mine (bzm) protocol over a 9‑bit UART
+transport. The library is platform‑agnostic and re‑usable on host Linux/macOS
+and embedded platforms (e.g., ESP32, STM32) via a small transport abstraction
+you implement.
 
 - Platforms: Linux, macOS (tested via CMake). Embedded toolchains supported by
   compiling `include/` + `src/` directly into firmware and providing a transport.

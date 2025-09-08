@@ -11,7 +11,7 @@ option(BZM_BUILD_TESTS "Build unit tests" ON)
 option(BZM_ENABLE_ASAN "Enable AddressSanitizer for tests" OFF)
 option(BZM_WERROR "Treat warnings as errors" ON)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_library(bzm

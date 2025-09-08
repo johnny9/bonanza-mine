@@ -1,4 +1,4 @@
-// Public API for Bonanza Mine (bzm) command helpers
+// Public API for the Bonanza Mine (bzm) protocol library
 #ifndef BZM_BZM_H
 #define BZM_BZM_H
 
