@@ -1,0 +1,50 @@
+# Build directories
+build/
+build-*/
+cmake-build*/
+out/
+
+# CMake artifacts
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+_deps/
+compile_commands.json
+
+# Compiled objects and libraries
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
+
+# Coverage / profiling
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+
+# Logs and dumps
+*.log
+core
+core.*
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.*.sw?
+.DS_Store
+
