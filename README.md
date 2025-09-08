@@ -57,5 +57,8 @@ and parses responses.
 - Tests: `ctest --test-dir build --output-on-failure`
 - Valgrind (optional): `cmake --build build --target memcheck` if `valgrind` is installed
 
+Testing uses the Unity framework fetched at configure time via CMake FetchContent.
+To disable fetching (e.g., offline builds), configure with `-DBZM_FETCH_UNITY=OFF`.
+
 Windows desktop builds are disabled in `CMakeLists.txt` for now; embedded toolchains are
 supported by compiling sources directly.
