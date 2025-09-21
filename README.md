@@ -33,7 +33,9 @@ you implement.
 Header helpers are provided:
 - 32‑bit: `bzm_header32(asic, opcode, engine, offset)` → `asic:8|opcode:4|engine:12|offset:8`
 - 16‑bit: `bzm_header16(asic, opcode)` → `asic:8|opcode:4`
-- Big‑endian writers: `bzm_u16_be`, `bzm_u32_be` (portable shifts).
+
+Command helpers serialize headers to big-endian on the wire; payload bytes are copied
+without modification.
 
 See `include/bzm/bzm.h` for full API.
 

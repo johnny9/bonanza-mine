@@ -53,19 +53,6 @@ static inline uint32_t bzm_header32(uint8_t asic, uint8_t opcode, uint16_t engin
            ((uint32_t)(engine & 0x0FFF) << 8) | (uint32_t)offset;
 }
 
-// Serialize big-endian for fixed-width headers
-static inline void bzm_u16_be(uint8_t out[2], uint16_t v) {
-    out[0] = (uint8_t)(v >> 8);
-    out[1] = (uint8_t)(v & 0xFF);
-}
-
-static inline void bzm_u32_be(uint8_t out[4], uint32_t v) {
-    out[0] = (uint8_t)(v >> 24);
-    out[1] = (uint8_t)((v >> 16) & 0xFF);
-    out[2] = (uint8_t)((v >> 8) & 0xFF);
-    out[3] = (uint8_t)(v & 0xFF);
-}
-
 // READRESULT parsed structure
 typedef struct bzm_result {
     uint16_t engine_id; // 12-bit value in lower bits
