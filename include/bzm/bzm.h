@@ -43,11 +43,7 @@ typedef enum bzm_status {
 // Utility: TAR byte used by READREG
 #define BZM_TAR_BYTE ((uint8_t)0x08)
 
-// Header builders (big-endian on wire)
-static inline uint16_t bzm_header16(uint8_t asic, uint8_t opcode) {
-    return (uint16_t)(((uint16_t)asic << 8) | (((uint16_t)(opcode & 0xF)) << 4));
-}
-
+// Header builder for register/command requests (big-endian on wire)
 static inline uint32_t bzm_header32(uint8_t asic, uint8_t opcode, uint16_t engine, uint8_t offset) {
     return ((uint32_t)asic << 24) | ((uint32_t)(opcode & 0xF) << 20) |
            ((uint32_t)(engine & 0x0FFF) << 8) | (uint32_t)offset;

@@ -14,6 +14,7 @@ you implement.
   - `tx(ctx, asic, payload, len)`: send a 9‑bit address‑marked `asic` byte (9th bit=1),
     then `len` payload bytes (9th bit=0).
   - `rx(ctx, buf, len, timeout_ms)`: read exactly `len` bytes or fail/timeout.
+- Payload headers omit the ASIC byte; it is transmitted only as the 9‑bit address mark.
 - Endianness: 16/32‑bit headers serialized big‑endian; payload bytes are copied
   verbatim. Works the same on ARM/x86.
 - Timeouts: all receive operations accept `timeout_ms` from the caller (no fixed
@@ -32,10 +33,9 @@ you implement.
 
 Header helpers are provided:
 - 32‑bit: `bzm_header32(asic, opcode, engine, offset)` → `asic:8|opcode:4|engine:12|offset:8`
-- 16‑bit: `bzm_header16(asic, opcode)` → `asic:8|opcode:4`
 
 Command helpers serialize headers to big-endian on the wire; payload bytes are copied
-without modification.
+without modification. Opcode-only commands place `(opcode << 4)` as the first payload byte.
 
 See `include/bzm/bzm.h` for full API.
 

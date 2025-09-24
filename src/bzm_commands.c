@@ -2,16 +2,12 @@
 #include <string.h>
 
 // Internal helpers
-static void write_u16_be(uint8_t out[2], uint16_t v) {
-    out[0] = (uint8_t)(v >> 8);
-    out[1] = (uint8_t)(v & 0xFF);
-}
-
-static void write_u32_be(uint8_t out[4], uint32_t v) {
-    out[0] = (uint8_t)(v >> 24);
-    out[1] = (uint8_t)((v >> 16) & 0xFF);
-    out[2] = (uint8_t)((v >> 8) & 0xFF);
-    out[3] = (uint8_t)(v & 0xFF);
+static void write_header24(uint8_t out[3], uint8_t opcode, uint16_t engine, uint8_t offset) {
+    // Compose 24-bit header: [opcode(4b)|engine(12b)|offset(8b)]
+    uint32_t header = ((uint32_t)opcode << 20) | ((uint32_t)engine << 8) | offset;
+    out[0] = (uint8_t)(header >> 16);
+    out[1] = (uint8_t)(header >> 8);
+    out[2] = (uint8_t)header;
 }
 
 static bzm_status_t tx_payload(bzm_transport_t *io, uint8_t asic, const uint8_t *payload, size_t len) {
@@ -33,12 +29,11 @@ bzm_status_t bzm_writereg(bzm_transport_t *io, uint8_t asic, uint16_t engine,
     if (!io || !values) return BZM_EINVAL;
     if (count < 1 || count > 248) return BZM_EINVAL;
 
-    uint8_t buf[4 + 1 + 248];
-    uint32_t h = bzm_header32(asic, BZM_OPCODE_WRITEREG, engine, offset);
-    write_u32_be(buf, h);
-    buf[4] = (uint8_t)(count - 1);
-    memcpy(&buf[5], values, count);
-    return tx_payload(io, asic, buf, 5 + count);
+    uint8_t buf[3 + 1 + 248];
+    write_header24(buf, BZM_OPCODE_WRITEREG, engine, offset);
+    buf[3] = (uint8_t)(count - 1);
+    memcpy(&buf[4], values, count);
+    return tx_payload(io, asic, buf, 4 + count);
 }
 
 bzm_status_t bzm_readreg(bzm_transport_t *io, uint8_t asic, uint16_t engine,
@@ -46,19 +41,18 @@ bzm_status_t bzm_readreg(bzm_transport_t *io, uint8_t asic, uint16_t engine,
     if (!io || !out) return BZM_EINVAL;
     if (!(count == 1 || count == 2 || count == 4)) return BZM_EINVAL;
 
-    uint8_t req[4 + 1 + 1];
-    uint32_t h = bzm_header32(asic, BZM_OPCODE_READREG, engine, offset);
-    write_u32_be(req, h);
-    req[4] = (uint8_t)(count - 1);
-    req[5] = BZM_TAR_BYTE;
+    uint8_t req[3 + 1 + 1];
+    write_header24(req, BZM_OPCODE_READREG, engine, offset);
+    req[3] = (uint8_t)(count - 1);
+    req[4] = BZM_TAR_BYTE;
     bzm_status_t st = tx_payload(io, asic, req, sizeof(req));
     if (st != BZM_OK) return st;
 
-    // Response: echo header (2 bytes) then count bytes of data
-    uint8_t tmp[2 + 4];
-    st = rx_exact(io, tmp, (size_t)2 + count, timeout_ms);
+    // Response: echo header (1 byte) then count bytes of data
+    uint8_t tmp[1 + 4];
+    st = rx_exact(io, tmp, (size_t)1 + count, timeout_ms);
     if (st != BZM_OK) return st;
-    memcpy(out, &tmp[2], count);
+    memcpy(out, &tmp[1], count);
     return BZM_OK;
 }
 
@@ -67,12 +61,11 @@ bzm_status_t bzm_multicast_write(bzm_transport_t *io, uint8_t asic, uint16_t gro
     if (!io || !values) return BZM_EINVAL;
     if (count < 1 || count > 248) return BZM_EINVAL;
 
-    uint8_t buf[4 + 1 + 248];
-    uint32_t h = bzm_header32(asic, BZM_OPCODE_MCASTWRITE, group_id, offset);
-    write_u32_be(buf, h);
-    buf[4] = (uint8_t)(count - 1);
-    memcpy(&buf[5], values, count);
-    return tx_payload(io, asic, buf, 5 + count);
+    uint8_t buf[3 + 1 + 248];
+    write_header24(buf, BZM_OPCODE_MCASTWRITE, group_id, offset);
+    buf[3] = (uint8_t)(count - 1);
+    memcpy(&buf[4], values, count);
+    return tx_payload(io, asic, buf, 4 + count);
 }
 
 bzm_status_t bzm_writejob(bzm_transport_t *io, uint8_t asic, uint16_t engine,
@@ -80,21 +73,19 @@ bzm_status_t bzm_writejob(bzm_transport_t *io, uint8_t asic, uint16_t engine,
                           uint8_t sequence, uint8_t job_ctl) {
     if (!io || !midstate || !merkle_root_residue) return BZM_EINVAL;
 
-    uint8_t buf[4 + 32 + 4 + 1 + 1];
-    uint32_t h = bzm_header32(asic, BZM_OPCODE_WRITEJOB, engine, 0);
-    write_u32_be(buf, h);
-    memcpy(&buf[4], midstate, 32);
-    memcpy(&buf[36], merkle_root_residue, 4); // raw bytes, no endianness transform
-    buf[40] = sequence;
-    buf[41] = job_ctl;
+    uint8_t buf[3 + 32 + 4 + 1 + 1];
+    write_header24(buf, BZM_OPCODE_WRITEJOB, engine, 0);
+    memcpy(&buf[3], midstate, 32);
+    memcpy(&buf[35], merkle_root_residue, 4); // raw bytes, no endianness transform
+    buf[39] = sequence;
+    buf[40] = job_ctl;
     return tx_payload(io, asic, buf, sizeof(buf));
 }
 
 bzm_status_t bzm_readresult(bzm_transport_t *io, uint8_t asic, bzm_result_t *out, uint32_t timeout_ms) {
     if (!io || !out) return BZM_EINVAL;
-    uint8_t hdr[2];
-    write_u16_be(hdr, bzm_header16(asic, BZM_OPCODE_READRESULT));
-    bzm_status_t st = tx_payload(io, asic, hdr, sizeof(hdr));
+    uint8_t opcode_byte = (uint8_t)(BZM_OPCODE_READRESULT << 4);
+    bzm_status_t st = tx_payload(io, asic, &opcode_byte, 1);
     if (st != BZM_OK) return st;
 
     // Response: 8 bytes
@@ -113,9 +104,8 @@ bzm_status_t bzm_readresult(bzm_transport_t *io, uint8_t asic, bzm_result_t *out
 
 bzm_status_t bzm_dts_vs_read(bzm_transport_t *io, uint8_t asic, uint8_t *buf, size_t len, uint32_t timeout_ms) {
     if (!io || !buf || len == 0) return BZM_EINVAL;
-    uint8_t hdr[2];
-    write_u16_be(hdr, bzm_header16(asic, BZM_OPCODE_DTS_VS));
-    bzm_status_t st = tx_payload(io, asic, hdr, sizeof(hdr));
+    uint8_t opcode_byte = (uint8_t)(BZM_OPCODE_DTS_VS << 4);
+    bzm_status_t st = tx_payload(io, asic, &opcode_byte, 1);
     if (st != BZM_OK) return st;
     return rx_exact(io, buf, len, timeout_ms);
 }
@@ -125,17 +115,14 @@ bzm_status_t bzm_loopback(bzm_transport_t *io, uint8_t asic, const uint8_t *data
     if (!io || (!data && len) || !out) return BZM_EINVAL;
     if (len > 255) return BZM_EINVAL; // bound for safety
 
-    uint8_t hdr[2];
-    write_u16_be(hdr, bzm_header16(asic, BZM_OPCODE_LOOPBACK));
-
     // payload: count_minus_1, tar_or_pad, data[len]
-    uint8_t stackbuf[2 + 1 + 1 + 255];
-    memcpy(stackbuf, hdr, 2);
-    stackbuf[2] = (uint8_t)((len ? len : 1) - 1); // if len==0, send 1 with no data
-    stackbuf[3] = tar_or_pad;
-    if (len) memcpy(&stackbuf[4], data, len);
+    uint8_t stackbuf[1 + 1 + 1 + 255];
+    stackbuf[0] = (uint8_t)(BZM_OPCODE_LOOPBACK << 4);
+    stackbuf[1] = (uint8_t)((len ? len : 1) - 1); // if len==0, send 1 with no data
+    stackbuf[2] = tar_or_pad;
+    if (len) memcpy(&stackbuf[3], data, len);
 
-    bzm_status_t st = tx_payload(io, asic, stackbuf, 2 + 2 + len);
+    bzm_status_t st = tx_payload(io, asic, stackbuf, 3 + len);
     if (st != BZM_OK) return st;
 
     // Response: length + data echoed (no tar)
@@ -156,9 +143,8 @@ bzm_status_t bzm_loopback(bzm_transport_t *io, uint8_t asic, const uint8_t *data
 
 bzm_status_t bzm_noop(bzm_transport_t *io, uint8_t asic, uint32_t timeout_ms) {
     if (!io) return BZM_EINVAL;
-    uint8_t hdr[2];
-    write_u16_be(hdr, bzm_header16(asic, BZM_OPCODE_NOOP));
-    bzm_status_t st = tx_payload(io, asic, hdr, sizeof(hdr));
+    uint8_t opcode_byte = (uint8_t)(BZM_OPCODE_NOOP << 4);
+    bzm_status_t st = tx_payload(io, asic, &opcode_byte, 1);
     if (st != BZM_OK) return st;
     uint8_t resp[3];
     st = rx_exact(io, resp, sizeof(resp), timeout_ms);
